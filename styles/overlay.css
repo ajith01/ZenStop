@@ -1,0 +1,370 @@
+.zenstop-backdrop {
+  color-scheme: light;
+  --o-bg: #f6f2ff;
+  --o-bg-2: #fdf7e6;
+  --o-panel: #ffffff;
+  --o-surface: #ffffff;
+  --o-surface-muted: rgba(255, 255, 255, 0.92);
+  --o-accent: #6b5ed9;
+  --o-accent-2: #f2d06b;
+  --o-text: #1c1533;
+  --o-muted: #5a516d;
+  --o-border: rgba(99, 86, 199, 0.14);
+  --o-btn-secondary-bg: rgba(36, 23, 77, 0.08);
+  --o-btn-secondary-fg: #1e1840;
+  --o-btn-secondary-border: rgba(36, 23, 77, 0.15);
+  --o-chip-bg: rgba(107, 94, 217, 0.08);
+  --o-chip-border: rgba(107, 94, 217, 0.35);
+
+  position: fixed;
+  inset: 0;
+  z-index: 2147483647;
+  background: linear-gradient(180deg, var(--o-bg), var(--o-bg-2));
+  color: var(--o-text);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  font-family: system-ui, -apple-system, "Segoe UI", Inter, sans-serif;
+  text-align: center;
+  padding: 1.5rem;
+}
+
+.zenstop-backdrop[data-theme="dark"] {
+  color-scheme: dark;
+  --o-bg: #0f0b1d;
+  --o-bg-2: #171028;
+  --o-panel: rgba(29, 22, 46, 0.92);
+  --o-surface: rgba(33, 26, 52, 0.9);
+  --o-surface-muted: rgba(35, 28, 58, 0.9);
+  --o-accent: #8e7fff;
+  --o-accent-2: #f2d06b;
+  --o-text: #f2ecff;
+  --o-muted: #c9c1e0;
+  --o-border: rgba(142, 127, 255, 0.2);
+  --o-btn-secondary-bg: rgba(255, 255, 255, 0.08);
+  --o-btn-secondary-fg: #f2ecff;
+  --o-btn-secondary-border: rgba(255, 255, 255, 0.18);
+  --o-chip-bg: rgba(142, 127, 255, 0.12);
+  --o-chip-border: rgba(142, 127, 255, 0.35);
+}
+
+@media (prefers-color-scheme: dark) {
+  .zenstop-backdrop:not([data-theme]) {
+    color-scheme: dark;
+    --o-bg: #0f0b1d;
+    --o-bg-2: #171028;
+    --o-panel: rgba(29, 22, 46, 0.92);
+    --o-surface: rgba(33, 26, 52, 0.9);
+    --o-surface-muted: rgba(35, 28, 58, 0.9);
+    --o-accent: #8e7fff;
+    --o-accent-2: #f2d06b;
+    --o-text: #f2ecff;
+    --o-muted: #c9c1e0;
+    --o-border: rgba(142, 127, 255, 0.2);
+    --o-btn-secondary-bg: rgba(255, 255, 255, 0.08);
+    --o-btn-secondary-fg: #f2ecff;
+    --o-btn-secondary-border: rgba(255, 255, 255, 0.18);
+    --o-chip-bg: rgba(142, 127, 255, 0.12);
+    --o-chip-border: rgba(142, 127, 255, 0.35);
+  }
+}
+
+.zenstop-backdrop * {
+  box-sizing: border-box;
+}
+
+.zenstop-backdrop .hidden {
+  display: none !important;
+}
+
+.zenstop-panel {
+  backdrop-filter: blur(20px);
+  background: var(--o-panel);
+  border: 1px solid var(--o-border);
+  border-radius: 18px;
+  max-width: 440px;
+  width: min(90vw, 440px);
+  padding: 1.8rem 1.6rem;
+  box-shadow: 0 26px 50px rgba(31, 23, 72, 0.16);
+}
+
+.zenstop-label-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.zenstop-label {
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  font-size: 0.72rem;
+  color: var(--o-muted);
+  margin: 0 0 0.6rem;
+}
+
+.zenstop-badge {
+  padding: 0.35rem 0.85rem;
+  border-radius: 999px;
+  background: rgba(107, 94, 217, 0.12);
+  color: var(--o-text);
+  font-weight: 700;
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.zenstop-heading {
+  font-size: 1.8rem;
+  margin: 0 0 0.55rem;
+  line-height: 1.25;
+  color: var(--o-text);
+}
+
+.zenstop-description {
+  max-width: 32rem;
+  font-size: 0.98rem;
+  margin: 0 auto 0.8rem;
+  color: var(--o-muted);
+}
+
+.zenstop-open-emphasis {
+  font-size: 1.3rem;
+  font-weight: 800;
+  color: var(--o-text);
+  margin: 0.2rem 0 0.6rem;
+  letter-spacing: 0.005em;
+  text-align: center;
+}
+
+.zenstop-breath {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.55rem;
+  margin-bottom: 1rem;
+}
+
+.zenstop-breath-circle {
+  position: relative;
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(107, 94, 217, 0.38), rgba(107, 94, 217, 0.05));
+  animation: zenstop-breathe 6s ease-in-out infinite;
+  box-shadow: 0 0 35px rgba(107, 94, 217, 0.45);
+  overflow: hidden;
+}
+
+.zenstop-breath-circle::after,
+.zenstop-breath-circle::before {
+  content: "";
+  position: absolute;
+  inset: 12%;
+  border-radius: 50%;
+  border: 2px solid rgba(255, 255, 255, 0.4);
+  animation: zenstop-breathe-outline 6s ease-in-out infinite;
+}
+
+.zenstop-breath-circle::after {
+  inset: 3%;
+  animation-delay: 1.5s;
+  border-color: rgba(255, 255, 255, 0.3);
+}
+
+.zenstop-breath-text {
+  font-size: 0.92rem;
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+  color: var(--o-muted);
+}
+
+@keyframes zenstop-breathe {
+  0% {
+    transform: scale(0.8);
+    opacity: 0.55;
+  }
+  50% {
+    transform: scale(1.15);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(0.8);
+    opacity: 0.55;
+  }
+}
+
+@keyframes zenstop-breathe-outline {
+  0% {
+    transform: scale(0.8);
+    opacity: 0.6;
+  }
+  50% {
+    transform: scale(1.05);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(0.8);
+    opacity: 0.6;
+  }
+}
+
+.zenstop-countdown {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.45rem;
+  margin-bottom: 1.5rem;
+}
+
+.zenstop-countdown-label {
+  font-size: 0.78rem;
+  letter-spacing: 0.14em;
+  color: var(--o-muted);
+  text-transform: uppercase;
+}
+
+.zenstop-countdown-value {
+  font-size: 2.8rem;
+  font-weight: 600;
+  color: var(--o-text);
+}
+
+.zenstop-timer-inline {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  margin-right: 0.3rem;
+  font-weight: 700;
+}
+
+.zenstop-goal-line-legacy {
+  display: none;
+}
+
+.zenstop-actions .zenstop-btn {
+  min-width: 150px;
+  justify-content: center;
+}
+
+.zenstop-intent {
+  text-align: left;
+  margin: 0.9rem auto 0.8rem;
+  background: var(--o-surface-muted);
+  border: 1px solid var(--o-border);
+  border-radius: 14px;
+  padding: 0.7rem 0.8rem;
+  max-width: 380px;
+}
+
+.zenstop-intent-label {
+  display: block;
+  font-weight: 700;
+  color: var(--o-text);
+  margin-bottom: 0.25rem;
+  font-size: 0.95rem;
+  letter-spacing: 0.01em;
+}
+
+.zenstop-intent-input {
+  width: 100%;
+  height: 90px;
+  border-radius: 10px;
+  border: 1px solid var(--o-border);
+  background: var(--o-surface);
+  padding: 0.7rem 0.8rem;
+  font-size: 0.95rem;
+  font-family: system-ui, -apple-system, "Segoe UI", Inter, sans-serif;
+  color: var(--o-text);
+  resize: none;
+  overflow-y: auto;
+  line-height: 1.4;
+}
+
+.zenstop-intent-input:focus {
+  outline: none;
+  border-color: rgba(107, 94, 217, 0.8);
+  box-shadow: 0 0 0 3px rgba(107, 94, 217, 0.2);
+}
+
+.zenstop-intent-missing {
+  border-color: #d35f5f;
+  box-shadow: 0 0 0 3px rgba(211, 95, 95, 0.18);
+}
+
+.zenstop-tag-row {
+  display: flex;
+  gap: 0.6rem;
+  margin-top: 0.45rem;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.zenstop-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.3rem 0.75rem;
+  border-radius: 999px;
+  background: var(--o-chip-bg);
+  border: 1px solid var(--o-chip-border);
+  color: var(--o-text);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.zenstop-tag input {
+  accent-color: var(--o-accent);
+}
+
+.zenstop-intent-helper {
+  display: none;
+}
+
+.zenstop-intent-error {
+  margin: 0.35rem 0 0;
+  color: #c04e4e;
+  font-size: 0.82rem;
+}
+
+.zenstop-actions {
+  display: flex;
+  gap: 0.9rem;
+  flex-wrap: wrap;
+  justify-content: center;
+  margin-top: 0.8rem;
+}
+
+.zenstop-btn {
+  font-size: 0.95rem;
+  padding: 0.75rem 2.2rem;
+  border-radius: 999px;
+  border: none;
+  font-weight: 600;
+  transition: transform 0.2s ease, opacity 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+  cursor: pointer;
+}
+
+.zenstop-btn:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 12px 24px rgba(36, 23, 77, 0.16);
+}
+
+.zenstop-primary {
+  background: linear-gradient(135deg, var(--o-accent), var(--o-accent-2));
+  color: #1d1238;
+}
+
+.zenstop-secondary {
+  background: var(--o-btn-secondary-bg);
+  color: var(--o-btn-secondary-fg);
+  border: 1px solid var(--o-btn-secondary-border);
+  padding: 0.85rem 2rem;
+}
+
+.zenstop-btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+  box-shadow: none;
+}

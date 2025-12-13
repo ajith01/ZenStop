@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>ZenStop Options</title>
+    <link rel="stylesheet" href="options.css" />
+  </head>
+  <body>
+    <main class="card">
+      <header class="page-header">
+        <div>
+          <p class="eyebrow">ZenStop</p>
+          <h1>Settings</h1>
+          <p class="subhead">Tune your blocklist, goals, and review your progress.</p>
+        </div>
+        <div class="theme-toggle">
+          <label for="themeMode">Theme</label>
+          <select id="themeMode">
+            <option value="auto">Auto</option>
+            <option value="light">Light</option>
+            <option value="dark">Dark</option>
+          </select>
+        </div>
+        <div class="tab-list" role="tablist" aria-label="Settings sections">
+          <button class="tab-btn active" data-tab-target="rules" role="tab" aria-selected="true" aria-controls="tab-rules">Blocking</button>
+          <button class="tab-btn" data-tab-target="goals" role="tab" aria-selected="false" aria-controls="tab-goals">Goals & Allowances</button>
+          <button class="tab-btn" data-tab-target="history" role="tab" aria-selected="false" aria-controls="tab-history">History</button>
+          <button class="tab-btn" data-tab-target="intentions" role="tab" aria-selected="false" aria-controls="tab-intentions">Intentions</button>
+        </div>
+      </header>
+
+      <section class="tab-panel active" data-tab-panel="rules" id="tab-rules" role="tabpanel">
+        <div class="panel-card">
+          <h2>Blocking rules</h2>
+          <p class="helper">Keep only what matters—set your sites, waits, and redirect.</p>
+          <label>
+            Blocked websites
+            <textarea id="blocked" placeholder="facebook.com&#10;twitter.com"></textarea>
+            <span class="helper">Add one per line. Full URLs or domains both work.</span>
+          </label>
+
+          <label class="checkbox">
+            <input id="blockAdultSites" type="checkbox" />
+            <div class="checkbox-copy">
+              <span>Block adult websites (built-in list)</span>
+              <span class="helper">Toggle a curated adult-site list without adding individual URLs.</span>
+            </div>
+          </label>
+
+          <details id="customAdultWrapper" class="custom-adult">
+            <summary>Edit additional adult websites</summary>
+            <label>
+              Additional adult websites
+              <textarea id="customAdultSites" placeholder="Add extra adult domains&#10;example: site123.com"></textarea>
+              <span class="helper">Optional. These only apply when the adult block toggle above is enabled.</span>
+            </label>
+          </details>
+
+          <div class="field-grid">
+            <label>
+              Wait time (seconds)
+              <input id="seconds" type="number" min="3" value="10" />
+            </label>
+
+            <label>
+              Allowed browsing duration (minutes)
+              <input id="allowedMinutes" type="number" min="1" value="15" />
+              <span class="helper">After this many minutes the pause screen will return.</span>
+            </label>
+          </div>
+
+          <label>
+            Redirect URL when you bail
+            <input id="redirect" type="url" placeholder="https://www.google.com" />
+          </label>
+        </div>
+      </section>
+
+      <section class="tab-panel" data-tab-panel="goals" id="tab-goals" role="tabpanel" aria-hidden="true">
+        <div class="panel-card">
+          <h2>Goals & allowances</h2>
+          <p class="helper">Set a default allowance and fine-tune per site.</p>
+          <label>
+            Daily visit goals
+            <div class="goals-inline">
+              <div class="goals-inline-header">
+                <span class="goals-inline-title">Default per site</span>
+                <input id="visitGoalDefault" type="number" min="1" value="5" />
+              </div>
+              <span class="helper">Applied when a site doesn't have its own goal.</span>
+            </div>
+          </label>
+
+          <label>
+            Per-site goals
+            <textarea id="visitGoals" class="goals-inline-input" placeholder="facebook.com: 2&#10;instagram.com: 1"></textarea>
+            <span class="helper">Format: domain: goalCount. Leave blank to remove.</span>
+          </label>
+        </div>
+      </section>
+
+      <section class="tab-panel" data-tab-panel="history" id="tab-history" role="tabpanel" aria-hidden="true">
+        <div class="panel-card">
+          <div class="history-header">
+            <div>
+              <h2>Daily focus stats</h2>
+              <p class="helper">Visits per day across every blocked site.</p>
+            </div>
+            <div class="history-stats">
+              <div class="history-stat" aria-live="polite">
+                <span class="stat-label">Today's visits</span>
+                <span class="stat-value" id="visitTotal">0</span>
+              </div>
+              <div class="history-stat success" aria-live="polite">
+                <span class="stat-label">Successes</span>
+                <span class="stat-value" id="successTotal">0</span>
+              </div>
+            </div>
+          </div>
+          <div class="history-controls" role="group" aria-label="Chart controls">
+            <div class="toggle-group" role="group" aria-label="Metric">
+              <button class="toggle-btn active" data-metric="visits">Visits</button>
+              <button class="toggle-btn" data-metric="success">Successes</button>
+            </div>
+            <div class="range-group" role="group" aria-label="Range">
+              <button class="range-btn active" data-history-range="7">Past week</button>
+              <button class="range-btn" data-history-range="30">Past month</button>
+            </div>
+          </div>
+          <div class="chart-shell">
+            <canvas
+              id="historyChart"
+              role="img"
+              aria-label="Chart of visits per day"
+            ></canvas>
+            <div id="historyEmpty" class="history-empty">No visits logged yet.</div>
+          </div>
+        </div>
+      </section>
+
+      <section class="tab-panel" data-tab-panel="intentions" id="tab-intentions" role="tabpanel" aria-hidden="true">
+        <div class="panel-card">
+          <div class="intentions-header">
+            <div>
+              <h2>Intentions log</h2>
+              <p class="helper">Reasons you captured on blocked sites with when you noted them.</p>
+            </div>
+          </div>
+          <div class="intentions-controls">
+            <div class="tag-builder">
+              <label for="customTagInput">Add up to 5 custom tags</label>
+              <div class="tag-builder-row">
+                <input id="customTagInput" type="text" maxlength="20" placeholder="e.g. Study" />
+                <button id="addTagBtn" type="button">Add</button>
+              </div>
+              <p class="helper">Defaults: Productive, Research, Entertainment. Custom tags appear on the block screen.</p>
+              <div id="tagError" class="form-error hidden"></div>
+              <div id="customTagList" class="tag-list"></div>
+            </div>
+            <div class="intentions-filters">
+              <label for="reasonFilter">Filter by tag</label>
+              <select id="reasonFilter">
+                <option value="all">All</option>
+              </select>
+              <button id="clearReasons" type="button" class="danger">Clear all</button>
+            </div>
+          </div>
+          <div id="reasonEmpty" class="intentions-empty">No intentions logged yet.</div>
+          <ul id="reasonList" class="intentions-list" aria-live="polite"></ul>
+        </div>
+      </section>
+
+      <div class="footer-bar">
+        <div id="status" role="status" aria-live="polite"></div>
+        <button id="save">Save changes</button>
+      </div>
+    </main>
+
+    <script src="options.js"></script>
+  </body>
+</html>
