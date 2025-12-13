@@ -136,4 +136,3 @@ If ZenStop's data practices change, this policy will be updated and the "Last up
 If you have questions about this Privacy Policy, contact:
 
 - Email: a0afqo7he@mozmail.com
-
