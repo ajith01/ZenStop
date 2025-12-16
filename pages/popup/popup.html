@@ -9,20 +9,35 @@
     <div class="card">
       <h1>ZenStop</h1>
       <p id="summary"></p>
-      <p id="pauseStats" class="muted"></p>
-      <div class="stat-grid">
-        <div class="stat-card">
-          <span class="label">Today's pauses</span>
+      <p id="pauseStats" class="muted hidden"></p>
+      <div class="stat-box" aria-label="Today's stats">
+        <div class="stat-mini">
+          <span class="label">Pauses</span>
           <span id="pauseCount" class="value">0</span>
         </div>
-        <div class="stat-card">
+        <div class="stat-divider" aria-hidden="true"></div>
+        <div class="stat-mini">
           <span class="label">Mindful exits</span>
           <span id="bailCount" class="value">0</span>
         </div>
       </div>
+      <div class="quick-block" aria-label="Quick block current site">
+        <div class="quick-block-row">
+          <div class="quick-block-info">
+            <span class="label">Current site</span>
+            <span id="currentSite" class="domain">—</span>
+          </div>
+          <button id="blockSite" class="chip" type="button">Block</button>
+        </div>
+        <div id="blockChooser" class="block-chooser hidden" role="group" aria-label="Choose block type">
+          <button id="blockAsUnproductive" class="chip" type="button">Unproductive</button>
+          <button id="blockAsAdult" class="chip" type="button">Adult</button>
+        </div>
+        <p id="blockSiteStatus" class="helper" aria-live="polite"></p>
+      </div>
       <div class="actions">
-        <button id="openOptions">Edit settings</button>
-        <button id="resetGrace" class="secondary">Reset timers</button>
+        <button id="openOptions">Settings</button>
+        <button id="resetGrace">Reset timers</button>
       </div>
     </div>
     <script src="popup.js"></script>

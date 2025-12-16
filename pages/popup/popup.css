@@ -47,7 +47,7 @@ html,
 body {
   margin: 0;
   min-width: 320px;
-  padding: 18px;
+  padding: 16px;
   background: linear-gradient(150deg, var(--bg), var(--bg-2));
   color: var(--text);
   border-radius: 24px;
@@ -56,7 +56,7 @@ body {
 
 .card {
   background: var(--surface);
-  padding: 1.55rem;
+  padding: 1.35rem;
   border-radius: 22px;
   border: 1px solid var(--border);
   box-shadow: 0 20px 44px rgba(47, 34, 104, 0.18);
@@ -81,66 +81,125 @@ p#summary {
   font-size: 0.85rem;
 }
 
-.stat-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-  gap: 0.75rem;
-  margin: 1rem 0 0.5rem;
+.helper {
+  margin: 0.55rem 0 0;
+  color: var(--text-muted);
+  font-size: 0.8rem;
 }
 
-.stat-card {
-  padding: 0.9rem 1rem;
-  border-radius: 14px;
-  background: var(--surface-muted);
+.hidden {
+  display: none !important;
+}
+
+.stat-box {
+  display: flex;
+  align-items: stretch;
+  gap: 0.8rem;
+  margin: 1rem 0 0;
+  padding: 0.7rem 0.85rem;
+  border-radius: 16px;
   border: 1px solid var(--border);
+  background: var(--surface-muted);
 }
 
-.stat-card .label {
+.stat-mini {
+  flex: 1;
+  min-width: 0;
+  text-align: left;
+}
+
+.stat-mini .label {
   display: block;
-  font-size: 0.78rem;
+  font-size: 0.7rem;
   color: var(--text-muted);
   text-transform: uppercase;
   letter-spacing: 0.05em;
 }
 
-.stat-card .value {
+.stat-mini .value {
   display: block;
-  margin-top: 0.35rem;
-  font-size: 1.35rem;
+  margin-top: 0.25rem;
+  font-size: 1.05rem;
   font-weight: 700;
   color: var(--text);
 }
 
+.stat-divider {
+  width: 1px;
+  background: var(--border);
+  opacity: 0.8;
+}
+
 button {
-  width: 100%;
+  width: auto;
   border: none;
   border-radius: 999px;
-  padding: 0.85rem 1.2rem;
-  font-size: 1rem;
+  padding: 0.7rem 1rem;
+  font-size: 0.95rem;
   font-weight: 600;
   background: linear-gradient(135deg, var(--accent), var(--accent-2));
   color: #1f1637;
   cursor: pointer;
   transition: transform 0.2s ease;
+}
+
+.chip {
+  border: 1px solid var(--border);
+  background: linear-gradient(135deg, var(--accent), var(--accent-2));
+  color: #1f1637;
+  font-weight: 700;
+  padding: 0.55rem 0.9rem;
+  white-space: nowrap;
+}
+
+.block-chooser {
+  display: flex;
+  gap: 0.5rem;
+  justify-content: flex-end;
+  margin-top: 0.6rem;
+}
+
+.block-chooser .chip {
+  padding: 0.5rem 0.8rem;
+  font-size: 0.9rem;
 }
 
 .actions {
   display: flex;
-  flex-direction: column;
-  gap: 0.7rem;
-  margin-top: 1.2rem;
+  gap: 0.6rem;
+  margin-top: 0.9rem;
+}
+
+.quick-block {
+  margin-top: 1rem;
+}
+
+.quick-block-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.quick-block-info {
+  min-width: 0;
+}
+
+.quick-block .label {
+  display: block;
+}
+
+.domain {
+  font-weight: 700;
+  color: var(--text);
+  max-width: 200px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .actions button {
-  border: none;
-  border-radius: 999px;
-  padding: 0.85rem 1.2rem;
-  font-size: 1rem;
-  font-weight: 600;
-  background: linear-gradient(135deg, var(--accent), var(--accent-2));
-  color: #1f1637;
-  cursor: pointer;
-  transition: transform 0.2s ease;
+  flex: 1;
 }
 
 button:hover {

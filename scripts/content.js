@@ -3,6 +3,8 @@ const OVERLAY_STYLE_ID = "zenstop-overlay-style";
 const GRACE_KEY = "gracePeriods";
 const GRACE_EXPIRED_MESSAGE = "zenstop_grace_expired";
 const GRACE_STARTED_MESSAGE = "zenstop_grace_started";
+const OVERLAY_SHOWN_MESSAGE = "zenstop_overlay_shown";
+const OVERLAY_RESOLVED_MESSAGE = "zenstop_overlay_resolved";
 const REASONS_KEY = "usageReasons";
 const MAX_REASONS = 50;
 const MAX_CUSTOM_TAGS = 5;
@@ -314,6 +316,8 @@ function injectOverlay(seconds, redirectUrl, stats = {}) {
     intentTags = []
   } = stats;
 
+  notifyOverlayShown(siteKey);
+
   const goalValue = typeof visitGoals?.[siteKey] === "number" && visitGoals[siteKey] > 0
     ? visitGoals[siteKey]
     : (typeof visitGoalDefault === "number" && visitGoalDefault > 0 ? visitGoalDefault : null);
@@ -457,6 +461,7 @@ function injectOverlay(seconds, redirectUrl, stats = {}) {
     await chrome.storage.sync.set({ dailyStats });
     await logReasonIfProvided("continue").catch(() => {});
     cleanup();
+    await notifyOverlayResolved(siteKey, "continue");
     const releaseAt = await grantGracePeriod(siteKey, allowedMinutes);
     await notifyGraceStarted(siteKey, releaseAt);
   });
@@ -474,6 +479,7 @@ function injectOverlay(seconds, redirectUrl, stats = {}) {
         updatedSuccess[todayKey] = (updatedSuccess[todayKey] || 0) + 1;
         await logReasonIfProvided("redirect").catch(() => {});
         cleanup();
+        await notifyOverlayResolved(siteKey, "redirect");
         await chrome.storage.sync.set({ dailyStats, successHistory: updatedSuccess });
         await clearGracePeriod(siteKey);
         window.location.assign(redirectUrl);
@@ -566,6 +572,35 @@ async function notifyGraceStarted(siteKey, releaseAt) {
     });
   } catch {
     // Ignore messaging failures (e.g., background asleep); content timers still act as fallback.
+  }
+}
+
+async function notifyOverlayShown(siteKey) {
+  if (!isExtensionContextValid()) return;
+  if (!siteKey) return;
+  try {
+    await chrome.runtime.sendMessage({
+      type: OVERLAY_SHOWN_MESSAGE,
+      siteKey,
+      timestamp: Date.now()
+    });
+  } catch {
+    // ignore
+  }
+}
+
+async function notifyOverlayResolved(siteKey, outcome) {
+  if (!isExtensionContextValid()) return;
+  if (!siteKey) return;
+  try {
+    await chrome.runtime.sendMessage({
+      type: OVERLAY_RESOLVED_MESSAGE,
+      siteKey,
+      outcome: outcome || "unknown",
+      timestamp: Date.now()
+    });
+  } catch {
+    // ignore
   }
 }
 
