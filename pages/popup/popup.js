@@ -3,7 +3,6 @@ const pauseStats = document.getElementById("pauseStats");
 const pauseCountEl = document.getElementById("pauseCount");
 const bailCountEl = document.getElementById("bailCount");
 const button = document.getElementById("openOptions");
-const resetGraceBtn = document.getElementById("resetGrace");
 const currentSiteEl = document.getElementById("currentSite");
 const blockSiteBtn = document.getElementById("blockSite");
 const blockChooserEl = document.getElementById("blockChooser");
@@ -11,7 +10,7 @@ const blockAsUnproductiveBtn = document.getElementById("blockAsUnproductive");
 const blockAsAdultBtn = document.getElementById("blockAsAdult");
 const blockSiteStatusEl = document.getElementById("blockSiteStatus");
 
-const elementsReady = summary && pauseStats && pauseCountEl && bailCountEl && button && resetGraceBtn;
+const elementsReady = summary && pauseStats && pauseCountEl && bailCountEl && button;
 const quickBlockReady = currentSiteEl && blockSiteBtn && blockChooserEl && blockAsUnproductiveBtn && blockAsAdultBtn && blockSiteStatusEl;
 
 (async () => {
@@ -64,7 +63,6 @@ const quickBlockReady = currentSiteEl && blockSiteBtn && blockChooserEl && block
 
 if (elementsReady) {
   button.addEventListener("click", () => chrome.runtime.openOptionsPage());
-  resetGraceBtn.addEventListener("click", clearGracePeriods);
 }
 
 if (quickBlockReady) {
@@ -78,16 +76,6 @@ function applyTheme(mode) {
   if (!target) return;
   const valid = ["auto", "light", "dark"].includes(mode) ? mode : "auto";
   target.dataset.theme = valid;
-}
-
-async function clearGracePeriods() {
-  try {
-    await chrome.storage.local.set({ gracePeriods: {} });
-    resetGraceBtn.textContent = "Timers cleared";
-    setTimeout(() => (resetGraceBtn.textContent = "Reset timers"), 1400);
-  } catch (err) {
-    console.error("Failed clearing grace periods", err);
-  }
 }
 
 function normalizeDailyStats(value, todayKey) {
