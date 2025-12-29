@@ -548,11 +548,40 @@ select:focus {
   transition: all 0.2s ease;
 }
 
+.toggle-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
 .toggle-btn.active,
 .range-btn.active {
   background: linear-gradient(120deg, rgba(107, 94, 217, 0.18), rgba(243, 201, 79, 0.28));
   border-color: rgba(107, 94, 217, 0.6);
   box-shadow: 0 6px 20px rgba(47, 34, 104, 0.18);
+}
+
+.site-group {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.site-group label {
+  margin: 0;
+  font-weight: 600;
+  color: var(--text-muted);
+  font-size: 0.85rem;
+}
+
+.site-group select {
+  min-width: 170px;
+  padding: 0.45rem 0.6rem;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  font-weight: 600;
 }
 
 .history-stats {

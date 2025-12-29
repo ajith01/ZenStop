@@ -104,7 +104,7 @@
           <div class="history-header">
             <div>
               <h2>Daily focus stats</h2>
-              <p class="helper">Visits per day across every blocked site.</p>
+              <p class="helper">Visits per day across all sites or a selected site.</p>
             </div>
             <div class="history-stats">
               <div class="history-stat" aria-live="polite">
@@ -121,6 +121,12 @@
             <div class="toggle-group" role="group" aria-label="Metric">
               <button class="toggle-btn active" data-metric="visits">Visits</button>
               <button class="toggle-btn" data-metric="success">Successes</button>
+            </div>
+            <div class="site-group">
+              <label for="historySite">Site</label>
+              <select id="historySite">
+                <option value="all">All sites</option>
+              </select>
             </div>
             <div class="range-group" role="group" aria-label="Range">
               <button class="range-btn active" data-history-range="7">Past week</button>

@@ -6,6 +6,8 @@ const GRACE_STARTED_MESSAGE = "zenstop_grace_started";
 const OVERLAY_SHOWN_MESSAGE = "zenstop_overlay_shown";
 const OVERLAY_RESOLVED_MESSAGE = "zenstop_overlay_resolved";
 const REASONS_KEY = "usageReasons";
+const GRACE_INDICATOR_ID = "zenstop-grace-indicator";
+const GRACE_INDICATOR_STYLE_ID = "zenstop-grace-indicator-style";
 const MAX_REASONS = 50;
 const MAX_CUSTOM_TAGS = 5;
 const GOALS_KEY = "visitGoals";
@@ -34,7 +36,11 @@ const state = {
   evaluating: false,
   lastHref: location.href,
   timers: new Map(),
-  intervals: []
+  intervals: [],
+  graceIndicator: {
+    intervalId: null,
+    releaseAt: 0
+  }
 };
 
 initialize();
@@ -104,8 +110,14 @@ async function evaluateSite() {
   if (state.evaluating) return;
   state.evaluating = true;
   try {
-    if (location.protocol.startsWith("chrome")) return;
-    if (document.getElementById(OVERLAY_ID)) return;
+    if (location.protocol.startsWith("chrome")) {
+      clearGraceIndicator();
+      return;
+    }
+    if (document.getElementById(OVERLAY_ID)) {
+      clearGraceIndicator();
+      return;
+    }
 
     const settings = await loadSettings();
     const blockedSites = buildBlockedList(
@@ -113,20 +125,36 @@ async function evaluateSite() {
       settings.blockAdultSites,
       settings.customAdultSites
     );
-    if (!blockedSites.length) return;
+    if (!blockedSites.length) {
+      clearGraceIndicator();
+      return;
+    }
 
     const hostInfo = resolveBlockedSite(blockedSites);
-    if (!hostInfo) return;
+    if (!hostInfo) {
+      clearGraceIndicator();
+      return;
+    }
 
     const { siteKey, label } = hostInfo;
     const graceRelease = await readGraceRelease(siteKey);
     if (graceRelease > Date.now()) {
+      showGraceIndicator(graceRelease);
       scheduleReturn(siteKey, graceRelease - Date.now());
       return;
     }
 
+    clearGraceIndicator();
     const visitContext = await recordVisit(settings, siteKey);
     stopAutoplayMedia();
+    const goalValue = resolveGoalValue(settings.visitGoals, settings.visitGoalDefault, siteKey);
+    const streak = calculateGoalStreak(
+      visitContext.historyMap,
+      settings.openHistory,
+      siteKey,
+      visitContext.todayKey,
+      goalValue
+    );
 
     injectOverlay(settings.waitSeconds, settings.redirectUrl, {
       siteLabel: label,
@@ -134,10 +162,12 @@ async function evaluateSite() {
       dailyStats: visitContext.dailyStats,
       successTotals: visitContext.successTotals,
       allowedMinutes: settings.allowedMinutes,
+      openHistory: settings.openHistory,
       visitGoals: settings.visitGoals,
       visitGoalDefault: settings.visitGoalDefault,
       themeMode: settings.themeMode,
-      intentTags: settings.intentTags
+      intentTags: settings.intentTags,
+      streak
     });
   } finally {
     state.evaluating = false;
@@ -157,6 +187,7 @@ async function loadSettings() {
     allowedMinutes = 15,
     blockAdultSites = true,
     customAdultSites = [],
+    openHistory,
     visitGoals = {},
     visitGoalDefault = 5,
     themeMode = "auto",
@@ -172,6 +203,7 @@ async function loadSettings() {
     "allowedMinutes",
     "blockAdultSites",
     "customAdultSites",
+    "openHistory",
     GOALS_KEY,
     GOAL_DEFAULT_KEY,
     THEME_KEY,
@@ -186,6 +218,7 @@ async function loadSettings() {
     visitHistory,
     successHistory,
     history,
+    openHistory: openHistory && typeof openHistory === "object" && !Array.isArray(openHistory) ? openHistory : {},
     allowedMinutes: Math.max(1, Number(allowedMinutes) || 15),
     blockAdultSites: typeof blockAdultSites === "boolean" ? blockAdultSites : true,
     customAdultSites: Array.isArray(customAdultSites) ? customAdultSites : [],
@@ -233,8 +266,8 @@ function buildBlockedList(userSites = [], blockAdultSites = true, customAdultSit
 }
 
 async function recordVisit(settings, siteKey) {
-  const today = getTodayKey();
-  const dailyStats = normalizeDailyStats(settings.dailyStats, today);
+  const todayKey = getTodayKey();
+  const dailyStats = normalizeDailyStats(settings.dailyStats, todayKey);
   const visits = { ...dailyStats.visits };
   const bails = { ...dailyStats.bails };
   const opens = { ...dailyStats.opens };
@@ -247,10 +280,10 @@ async function recordVisit(settings, siteKey) {
   dailyStats.opens = opens;
 
   const domainHistory = { ...(historyMap[siteKey] || {}) };
-  domainHistory[today] = (domainHistory[today] || 0) + 1;
+  domainHistory[todayKey] = (domainHistory[todayKey] || 0) + 1;
   historyMap[siteKey] = domainHistory;
 
-  visitHistory[today] = (visitHistory[today] || 0) + 1;
+  visitHistory[todayKey] = (visitHistory[todayKey] || 0) + 1;
 
   if (isExtensionContextValid()) {
     await chrome.storage.sync.set({
@@ -261,7 +294,7 @@ async function recordVisit(settings, siteKey) {
     });
   }
 
-  return { dailyStats, successTotals };
+  return { dailyStats, successTotals, historyMap, todayKey };
 }
 
 function injectOverlay(seconds, redirectUrl, stats = {}) {
@@ -281,6 +314,9 @@ function injectOverlay(seconds, redirectUrl, stats = {}) {
       </p>
       <p class="zenstop-open-emphasis">
         Opens <span id="zenstop-open-count">0</span> / Goal <span id="zenstop-open-goal">-</span>
+      </p>
+      <p class="zenstop-streak">
+        Goal streak <span id="zenstop-streak-count">0</span>
       </p>
       <div class="zenstop-breath">
         <div class="zenstop-breath-circle"></div>
@@ -310,25 +346,34 @@ function injectOverlay(seconds, redirectUrl, stats = {}) {
     dailyStats,
     successTotals: initialSuccessTotals = {},
     allowedMinutes = 15,
+    openHistory = {},
     visitGoals = {},
     visitGoalDefault = 5,
     themeMode = "auto",
-    intentTags = []
+    intentTags = [],
+    streak = 0
   } = stats;
 
   notifyOverlayShown(siteKey);
 
-  const goalValue = typeof visitGoals?.[siteKey] === "number" && visitGoals[siteKey] > 0
-    ? visitGoals[siteKey]
-    : (typeof visitGoalDefault === "number" && visitGoalDefault > 0 ? visitGoalDefault : null);
+  const goalValue = resolveGoalValue(visitGoals, visitGoalDefault, siteKey);
   const todayOpens = (dailyStats?.opens && dailyStats.opens[siteKey]) || 0;
   const openCountEl = overlay.querySelector("#zenstop-open-count");
   const openGoalEl = overlay.querySelector("#zenstop-open-goal");
+  const openLineEl = overlay.querySelector(".zenstop-open-emphasis");
   if (openCountEl) {
     openCountEl.textContent = `${todayOpens}`;
   }
   if (openGoalEl) {
     openGoalEl.textContent = goalValue ? `${goalValue}` : "-";
+  }
+  if (openLineEl && goalValue) {
+    const isLastAttempt = todayOpens === goalValue;
+    openLineEl.classList.toggle("zenstop-open-warning", isLastAttempt);
+  }
+  const streakEl = overlay.querySelector("#zenstop-streak-count");
+  if (streakEl) {
+    streakEl.textContent = formatStreak(streak);
   }
   const allTags = buildIntentTags(intentTags);
   const tagInputs = renderTagOptions(overlay, allTags);
@@ -455,10 +500,15 @@ function injectOverlay(seconds, redirectUrl, stats = {}) {
       (hasReason() ? tagInputs[0] : reasonInput)?.focus();
       return;
     }
+    const todayKey = getTodayKey();
     const opens = { ...(dailyStats.opens || {}) };
     opens[siteKey] = (opens[siteKey] || 0) + 1;
     dailyStats.opens = opens;
-    await chrome.storage.sync.set({ dailyStats });
+    const openHistoryMap = getHistoryMap(openHistory);
+    const perSiteOpens = { ...(openHistoryMap[siteKey] || {}) };
+    perSiteOpens[todayKey] = (perSiteOpens[todayKey] || 0) + 1;
+    openHistoryMap[siteKey] = perSiteOpens;
+    await chrome.storage.sync.set({ dailyStats, openHistory: openHistoryMap });
     await logReasonIfProvided("continue").catch(() => {});
     cleanup();
     await notifyOverlayResolved(siteKey, "continue");
@@ -558,6 +608,7 @@ async function grantGracePeriod(siteKey, minutes) {
   stored[siteKey] = releaseAt;
   await chrome.storage.local.set({ [GRACE_KEY]: stored });
   scheduleReturn(siteKey, durationMs);
+  showGraceIndicator(releaseAt);
   return releaseAt;
 }
 
@@ -612,6 +663,7 @@ async function clearGracePeriod(siteKey) {
     delete stored[siteKey];
     await chrome.storage.local.set({ [GRACE_KEY]: stored });
   }
+  clearGraceIndicator();
   const timeout = state.timers.get(siteKey);
   if (timeout) {
     clearTimeout(timeout);
@@ -628,6 +680,115 @@ function scheduleReturn(siteKey, delayMs) {
     evaluateSite();
   }, delayMs);
   state.timers.set(siteKey, timeout);
+}
+
+function showGraceIndicator(releaseAt) {
+  if (!releaseAt || releaseAt <= Date.now()) {
+    clearGraceIndicator();
+    return;
+  }
+  ensureGraceIndicatorStyles();
+  let indicator = document.getElementById(GRACE_INDICATOR_ID);
+  if (!indicator) {
+    indicator = document.createElement("div");
+    indicator.id = GRACE_INDICATOR_ID;
+    const appendIndicator = () => {
+      const host = document.body || document.documentElement;
+      if (!host) return false;
+      if (!indicator.isConnected) {
+        try {
+          host.appendChild(indicator);
+        } catch {
+          return false;
+        }
+      }
+      return true;
+    };
+    if (!appendIndicator()) {
+      document.addEventListener("DOMContentLoaded", appendIndicator, { once: true });
+    }
+  }
+  enableIndicatorDrag(indicator);
+
+  const update = () => {
+    const remaining = releaseAt - Date.now();
+    if (remaining <= 0) {
+      clearGraceIndicator();
+      return;
+    }
+    indicator.textContent = `Pause returns in ${formatCountdown(remaining)}`;
+  };
+
+  if (state.graceIndicator.intervalId) {
+    clearInterval(state.graceIndicator.intervalId);
+  }
+  state.graceIndicator.intervalId = setInterval(update, 1000);
+  state.graceIndicator.releaseAt = releaseAt;
+  update();
+}
+
+function enableIndicatorDrag(indicator) {
+  if (!indicator || indicator.dataset.draggable === "true") return;
+  indicator.dataset.draggable = "true";
+  let dragState = null;
+
+  indicator.addEventListener("pointerdown", (event) => {
+    if (event.button !== 0) return;
+    const rect = indicator.getBoundingClientRect();
+    indicator.style.left = `${rect.left}px`;
+    indicator.style.top = `${rect.top}px`;
+    indicator.style.right = "auto";
+    indicator.style.bottom = "auto";
+    dragState = {
+      pointerId: event.pointerId,
+      offsetX: event.clientX - rect.left,
+      offsetY: event.clientY - rect.top
+    };
+    indicator.setPointerCapture(event.pointerId);
+  });
+
+  indicator.addEventListener("pointermove", (event) => {
+    if (!dragState || dragState.pointerId !== event.pointerId) return;
+    const rect = indicator.getBoundingClientRect();
+    const maxLeft = Math.max(0, window.innerWidth - rect.width);
+    const maxTop = Math.max(0, window.innerHeight - rect.height);
+    const nextLeft = Math.min(maxLeft, Math.max(0, event.clientX - dragState.offsetX));
+    const nextTop = Math.min(maxTop, Math.max(0, event.clientY - dragState.offsetY));
+    indicator.style.left = `${nextLeft}px`;
+    indicator.style.top = `${nextTop}px`;
+  });
+
+  const endDrag = (event) => {
+    if (!dragState || dragState.pointerId !== event.pointerId) return;
+    dragState = null;
+    indicator.releasePointerCapture(event.pointerId);
+  };
+
+  indicator.addEventListener("pointerup", endDrag);
+  indicator.addEventListener("pointercancel", endDrag);
+}
+
+function clearGraceIndicator() {
+  const indicator = document.getElementById(GRACE_INDICATOR_ID);
+  if (indicator) {
+    indicator.remove();
+  }
+  if (state.graceIndicator.intervalId) {
+    clearInterval(state.graceIndicator.intervalId);
+    state.graceIndicator.intervalId = null;
+  }
+  state.graceIndicator.releaseAt = 0;
+}
+
+function formatCountdown(remainingMs) {
+  const totalSeconds = Math.max(0, Math.ceil(remainingMs / 1000));
+  const hours = Math.floor(totalSeconds / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const seconds = totalSeconds % 60;
+  if (hours > 0) {
+    return `${hours}:${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
+  }
+  return `${minutes}:${String(seconds).padStart(2, "0")}`;
 }
 
 async function saveUsageReason(entry) {
@@ -682,6 +843,49 @@ function ensureOverlayStyles() {
 
   if (!appendLink()) {
     document.addEventListener("DOMContentLoaded", appendLink, { once: true });
+  }
+}
+
+function ensureGraceIndicatorStyles() {
+  if (document.getElementById(GRACE_INDICATOR_STYLE_ID)) return;
+  const style = document.createElement("style");
+  style.id = GRACE_INDICATOR_STYLE_ID;
+  style.textContent = `
+    #${GRACE_INDICATOR_ID} {
+      position: fixed;
+      right: 16px;
+      bottom: 16px;
+      z-index: 2147483646;
+      font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+      font-size: 12px;
+      font-weight: 600;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      color: #f5f2ff;
+      background: rgba(25, 20, 45, 0.88);
+      border: 1px solid rgba(245, 242, 255, 0.18);
+      border-radius: 999px;
+      padding: 6px 12px;
+      box-shadow: 0 10px 24px rgba(12, 9, 28, 0.35);
+      backdrop-filter: blur(8px);
+      cursor: grab;
+      user-select: none;
+      touch-action: none;
+    }
+  `;
+  const appendStyle = () => {
+    if (document.head) {
+      document.head.appendChild(style);
+      return true;
+    }
+    if (document.documentElement && !style.isConnected) {
+      document.documentElement.appendChild(style);
+      return true;
+    }
+    return false;
+  };
+  if (!appendStyle()) {
+    document.addEventListener("DOMContentLoaded", appendStyle, { once: true });
   }
 }
 
@@ -747,12 +951,58 @@ function renderTagOptions(overlay, tags) {
   return row.querySelectorAll('input[name="zenstop-tag"]');
 }
 
+function resolveGoalValue(visitGoals, visitGoalDefault, siteKey) {
+  const siteGoal = visitGoals?.[siteKey];
+  if (typeof siteGoal === "number" && siteGoal > 0) return siteGoal;
+  if (typeof visitGoalDefault === "number" && visitGoalDefault > 0) return visitGoalDefault;
+  return null;
+}
+
 function getTodayKey() {
-  const now = new Date();
-  const year = now.getFullYear();
-  const month = String(now.getMonth() + 1).padStart(2, "0");
-  const day = String(now.getDate()).padStart(2, "0");
+  return formatDateKey(new Date());
+}
+
+function formatDateKey(date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
   return `${year}-${month}-${day}`;
+}
+
+function parseDateKey(value) {
+  if (!value || typeof value !== "string") return new Date();
+  const [year, month, day] = value.split("-").map(Number);
+  if (!year || !month || !day) return new Date();
+  return new Date(year, month - 1, day);
+}
+
+function calculateGoalStreak(historyMap, openHistory, siteKey, todayKey, goalValue) {
+  const goal = Number(goalValue);
+  if (!siteKey || !Number.isFinite(goal) || goal <= 0) return 0;
+  const perVisitHistory = historyMap?.[siteKey] || {};
+  const perOpenHistory = openHistory?.[siteKey] || {};
+  const dateKeys = [...new Set([...Object.keys(perVisitHistory), ...Object.keys(perOpenHistory)])];
+  if (!dateKeys.length) return 0;
+
+  const earliestKey = dateKeys.reduce((min, key) => (min && min < key ? min : key), "");
+  if (!earliestKey || earliestKey > todayKey) return 0;
+
+  let streak = 0;
+  const cursor = parseDateKey(todayKey);
+  const earliestDate = parseDateKey(earliestKey);
+  while (cursor >= earliestDate) {
+    const key = formatDateKey(cursor);
+    const openCount = Number(perOpenHistory[key]) || 0;
+    if (openCount > goal) break;
+    streak += 1;
+    cursor.setDate(cursor.getDate() - 1);
+  }
+  return streak;
+}
+
+function formatStreak(value) {
+  const count = Number(value) || 0;
+  return `${count} ${count === 1 ? "day" : "days"}`;
 }
 
 function isExtensionContextValid() {
@@ -764,4 +1014,5 @@ function cleanupIntervals() {
   state.intervals.length = 0;
   state.timers.forEach((timeoutId) => clearTimeout(timeoutId));
   state.timers.clear();
+  clearGraceIndicator();
 }

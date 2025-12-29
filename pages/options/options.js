@@ -13,6 +13,7 @@ const visitTotalEl = document.getElementById("visitTotal");
 const successTotalEl = document.getElementById("successTotal");
 const rangeButtons = document.querySelectorAll("[data-history-range]");
 const metricButtons = document.querySelectorAll("[data-metric]");
+const siteSelect = document.getElementById("historySite");
 const visitGoalsInput = document.getElementById("visitGoals");
 const visitGoalDefaultInput = document.getElementById("visitGoalDefault");
 const reasonList = document.getElementById("reasonList");
@@ -35,17 +36,22 @@ const chartCtx = chartCanvas ? chartCanvas.getContext("2d") : null;
 let chartData = [];
 let currentRange = 7;
 let currentMetric = "visits";
+let currentSite = "all";
 let currentCustomTags = [];
 let currentReasons = [];
 let currentFilter = "all";
+let cachedBlockedSites = [];
+let cachedCustomAdultSites = [];
 
 document.addEventListener("DOMContentLoaded", async () => {
   await restore();
   await renderDailySummary();
   await renderUsageReasons();
   chartData = await loadHistoryTotals();
+  populateSiteOptions(chartData.perSiteVisits);
   setActiveRangeButton(currentRange);
   setActiveMetricButton(currentMetric);
+  syncMetricAvailability();
   updateChart();
   initTabs();
 
@@ -61,6 +67,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   metricButtons.forEach((button) =>
     button.addEventListener("click", () => {
+      if (button.disabled) return;
       const metric = button.dataset.metric;
       if (!metric || metric === currentMetric) return;
       currentMetric = metric;
@@ -71,10 +78,31 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   window.addEventListener("resize", () => updateChart());
   blockAdultSitesInput.addEventListener("change", syncAdultVisibility);
+  if (siteSelect) {
+    siteSelect.addEventListener("change", () => {
+      currentSite = siteSelect.value || "all";
+      syncMetricAvailability();
+      updateChart();
+    });
+  }
   if (chrome?.storage?.onChanged) {
     chrome.storage.onChanged.addListener((changes, area) => {
       if (area === "sync" && changes.usageReasons) {
         renderUsageReasons();
+      }
+      if (area === "sync" && (changes.history || changes.visitHistory || changes.successHistory)) {
+        void refreshHistoryData();
+      }
+      if (area === "sync" && (changes.blockedSites || changes.customAdultSites)) {
+        cachedBlockedSites = Array.isArray(changes.blockedSites?.newValue)
+          ? changes.blockedSites.newValue
+          : cachedBlockedSites;
+        cachedCustomAdultSites = Array.isArray(changes.customAdultSites?.newValue)
+          ? changes.customAdultSites.newValue
+          : cachedCustomAdultSites;
+        populateSiteOptions(chartData.perSiteVisits);
+        syncMetricAvailability();
+        updateChart();
       }
       if (area === "sync" && changes.themeMode && themeModeSelect) {
         themeModeSelect.value = changes.themeMode.newValue || "auto";
@@ -144,6 +172,8 @@ async function restore() {
   allowedMinutesInput.value = allowedMinutes;
   blockAdultSitesInput.checked = typeof blockAdultSites === "boolean" ? blockAdultSites : true;
   customAdultSitesInput.value = Array.isArray(customAdultSites) ? customAdultSites.join("\n") : "";
+  cachedBlockedSites = Array.isArray(blockedSites) ? blockedSites : [];
+  cachedCustomAdultSites = Array.isArray(customAdultSites) ? customAdultSites : [];
   if (visitGoalsInput) {
     visitGoalsInput.value = formatVisitGoals(visitGoals);
   }
@@ -192,6 +222,13 @@ async function save() {
   });
   statusEl.textContent = "Saved!";
   setTimeout(() => (statusEl.textContent = ""), 1500);
+}
+
+async function refreshHistoryData() {
+  chartData = await loadHistoryTotals();
+  populateSiteOptions(chartData.perSiteVisits);
+  syncMetricAvailability();
+  updateChart();
 }
 
 function syncAdultVisibility() {
@@ -480,9 +517,11 @@ async function loadHistoryTotals() {
   const successes = successHistory
     ? Object.keys(successHistory).map((date) => ({ date, value: Number(successHistory[date]) || 0 }))
     : [];
+  const perSiteVisits = buildPerSiteSeries(history);
   return {
     visits: visits.sort((a, b) => a.date.localeCompare(b.date)),
-    success: successes.sort((a, b) => a.date.localeCompare(b.date))
+    success: successes.sort((a, b) => a.date.localeCompare(b.date)),
+    perSiteVisits
   };
 }
 
@@ -497,12 +536,30 @@ function buildTotalsFromLegacy(history) {
   return Object.keys(totals).map((date) => ({ date, value: totals[date] }));
 }
 
+function buildPerSiteSeries(history) {
+  if (!history || typeof history !== "object") return {};
+  const result = {};
+  Object.entries(history).forEach(([siteKey, perSite]) => {
+    if (!perSite || typeof perSite !== "object") return;
+    result[siteKey] = Object.keys(perSite)
+      .map((date) => ({ date, value: Number(perSite[date]) || 0 }))
+      .sort((a, b) => a.date.localeCompare(b.date));
+  });
+  return result;
+}
+
 function updateChart() {
-  if (!chartData || !chartData[currentMetric]) {
+  if (!chartData) {
     drawHistoryChart([], currentRange);
     return;
   }
-  const filtered = getRangeData(chartData[currentMetric], currentRange);
+  let series = [];
+  if (currentSite === "all") {
+    series = chartData[currentMetric] || [];
+  } else {
+    series = chartData.perSiteVisits?.[currentSite] || [];
+  }
+  const filtered = getRangeData(series, currentRange);
   drawHistoryChart(filtered, currentRange);
 }
 
@@ -510,6 +567,48 @@ function setActiveMetricButton(metric) {
   metricButtons.forEach((btn) => {
     btn.classList.toggle("active", btn.dataset.metric === metric);
   });
+}
+
+function syncMetricAvailability() {
+  const isAllSites = currentSite === "all";
+  metricButtons.forEach((btn) => {
+    if (btn.dataset.metric === "success") {
+      btn.disabled = !isAllSites;
+      btn.classList.toggle("active", isAllSites && currentMetric === "success");
+    }
+  });
+  if (!isAllSites && currentMetric === "success") {
+    currentMetric = "visits";
+    setActiveMetricButton(currentMetric);
+  }
+}
+
+function populateSiteOptions(perSiteVisits = {}) {
+  if (!siteSelect) return;
+  const labelMap = buildSiteLabelMap(cachedBlockedSites, cachedCustomAdultSites);
+  const manualKeys = new Set(
+    [...(cachedBlockedSites || []), ...(cachedCustomAdultSites || [])]
+      .map((entry) => normalizeEntry(entry))
+      .filter(Boolean)
+  );
+  const siteKeys = Object.keys(perSiteVisits || {}).sort((a, b) => {
+    const labelA = (labelMap[a] || a).toLowerCase();
+    const labelB = (labelMap[b] || b).toLowerCase();
+    return labelA.localeCompare(labelB);
+  });
+
+  const currentValue = siteSelect.value || "all";
+  siteSelect.innerHTML = `<option value="all">All sites</option>`;
+  siteKeys.filter((key) => manualKeys.has(key)).forEach((key) => {
+    const option = document.createElement("option");
+    option.value = key;
+    option.textContent = labelMap[key] || key;
+    siteSelect.appendChild(option);
+  });
+
+  const nextValue = manualKeys.has(currentValue) ? currentValue : "all";
+  siteSelect.value = nextValue;
+  currentSite = nextValue;
 }
 
 function drawHistoryChart(data, rangeDays) {
@@ -616,6 +715,27 @@ function normalizeDailyStats(value, todayKey) {
     };
   }
   return { date: todayKey, visits: {}, bails: {}, opens: {} };
+}
+
+function normalizeEntry(entry) {
+  if (typeof entry !== "string") return "";
+  const trimmed = entry.trim().toLowerCase();
+  if (!trimmed) return "";
+  const noProtocol = trimmed.replace(/^https?:\/\//, "");
+  const host = noProtocol.split(/[/?#:]/)[0];
+  return host.replace(/^\.+/, "");
+}
+
+function buildSiteLabelMap(blockedSites, customAdultSites) {
+  const map = {};
+  [...(blockedSites || []), ...(customAdultSites || [])].forEach((entry) => {
+    const normalized = normalizeEntry(entry);
+    if (!normalized) return;
+    if (!map[normalized]) {
+      map[normalized] = entry.trim() || normalized;
+    }
+  });
+  return map;
 }
 
 function formatDateKey(date) {

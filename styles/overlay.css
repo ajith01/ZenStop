@@ -138,6 +138,26 @@
   text-align: center;
 }
 
+.zenstop-open-warning {
+  color: var(--o-accent-2);
+}
+
+.zenstop-streak {
+  margin: 0 0 1rem;
+  font-size: 1rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--o-muted);
+}
+
+.zenstop-streak span {
+  font-weight: 700;
+  color: var(--o-text);
+  letter-spacing: 0.03em;
+  text-transform: none;
+  font-size: 1.1rem;
+}
+
 .zenstop-breath {
   display: flex;
   flex-direction: column;

@@ -5,6 +5,7 @@ const DEFAULTS = {
   allowedMinutes: 15,
   blockAdultSites: true,
   customAdultSites: [],
+  openHistory: {},
   visitGoals: {},
   visitGoalDefault: 5,
   themeMode: "auto",
@@ -29,6 +30,7 @@ chrome.runtime.onInstalled.addListener(async ({ reason }) => {
     "allowedMinutes",
     "blockAdultSites",
     "customAdultSites",
+    "openHistory",
     "visitGoals",
     "visitGoalDefault",
     "themeMode",
@@ -54,6 +56,9 @@ chrome.runtime.onInstalled.addListener(async ({ reason }) => {
     customAdultSites: Array.isArray(current.customAdultSites)
       ? current.customAdultSites
       : DEFAULTS.customAdultSites,
+    openHistory: current.openHistory && typeof current.openHistory === "object" && !Array.isArray(current.openHistory)
+      ? current.openHistory
+      : DEFAULTS.openHistory,
     visitGoals: current.visitGoals && typeof current.visitGoals === "object" && !Array.isArray(current.visitGoals)
       ? current.visitGoals
       : DEFAULTS.visitGoals,
