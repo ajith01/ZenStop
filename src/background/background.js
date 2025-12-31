@@ -18,6 +18,7 @@ const GRACE_STARTED_MESSAGE = "zenstop_grace_started";
 const GRACE_EXPIRED_MESSAGE = "zenstop_grace_expired";
 const OVERLAY_SHOWN_MESSAGE = "zenstop_overlay_shown";
 const OVERLAY_RESOLVED_MESSAGE = "zenstop_overlay_resolved";
+const TEST_PING_MESSAGE = "zenstop_test_ping";
 const OVERLAY_SESSIONS_KEY = "overlaySessions";
 
 const overlaySessionsByTab = new Map();
@@ -118,6 +119,11 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       () => sendResponse?.({ ok: true }),
       () => sendResponse?.({ ok: false })
     );
+    return true;
+  }
+
+  if (type === TEST_PING_MESSAGE) {
+    sendResponse?.({ ok: true, version: chrome.runtime.getManifest().version });
     return true;
   }
 
