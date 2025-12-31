@@ -1,7 +1,7 @@
 {
   "name": "ZenStop",
   "description": "Pause before you open distracting sites.",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "manifest_version": 3,
   "action": {
     "default_title": "ZenStop",
