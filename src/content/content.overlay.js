@@ -49,10 +49,15 @@
 
     if (!elements.dismissButton) return;
 
+    const stopMuteGuard = helpers.startAutoplayMuteGuard
+      ? helpers.startAutoplayMuteGuard(constants.OVERLAY_ID)
+      : null;
+
     setupOverlayBehavior({
       overlay,
       elements,
       tagInputs,
+      stopMuteGuard,
       context: {
         siteLabel,
         siteKey,
@@ -172,7 +177,7 @@
     return true;
   }
 
-  function setupOverlayBehavior({ overlay, elements, tagInputs, context, redirectUrl, seconds }) {
+  function setupOverlayBehavior({ overlay, elements, tagInputs, stopMuteGuard, context, redirectUrl, seconds }) {
     const { dismissButton, redirectButton, timerEl, countdownValueEl, countdownWrap, reasonInput, reasonError } =
       elements;
     const { dailyStats, siteKey, siteLabel, allowedMinutes, openHistory, successTotals } = context;
@@ -257,6 +262,8 @@
 
     const cleanup = () => {
       stopCountdown();
+      stopMuteGuard?.();
+      helpers.restoreAutoplayMedia?.();
       overlay.remove();
       document.documentElement.style.overflow = "";
     };

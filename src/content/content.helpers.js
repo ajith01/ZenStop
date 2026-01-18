@@ -46,7 +46,7 @@
     if (!hostname || !normalized) return false;
     if (hostname === normalized) return true;
     if (hostname.endsWith(`.${normalized}`)) return true;
-    return hostname.includes(normalized);
+    return false;
   }
 
   function resolveBlockedSite(sites) {
@@ -66,6 +66,10 @@
   function stopAutoplayMedia() {
     document.querySelectorAll("video, audio").forEach((el) => {
       try {
+        if (!el.dataset.zenstopMuted) {
+          el.dataset.zenstopMuted = "true";
+          el.dataset.zenstopMutedPrev = el.muted ? "true" : "false";
+        }
         el.pause?.();
         el.muted = true;
         if (!Number.isNaN(el.currentTime)) {
@@ -75,6 +79,45 @@
         // ignore
       }
     });
+  }
+
+  function restoreAutoplayMedia() {
+    document.querySelectorAll("video, audio").forEach((el) => {
+      if (!el.dataset.zenstopMuted) return;
+      try {
+        const wasMuted = el.dataset.zenstopMutedPrev === "true";
+        el.muted = wasMuted;
+      } catch {
+        // ignore
+      }
+      delete el.dataset.zenstopMuted;
+      delete el.dataset.zenstopMutedPrev;
+    });
+  }
+
+  function startAutoplayMuteGuard(overlayId, intervalMs = 1000) {
+    const root = document.documentElement || document.body;
+    if (!root) return () => {};
+    let active = true;
+    const stop = () => {
+      if (!active) return;
+      active = false;
+      observer.disconnect();
+      clearInterval(intervalId);
+    };
+    const check = () => {
+      if (!active) return;
+      if (overlayId && !document.getElementById(overlayId)) {
+        stop();
+        return;
+      }
+      stopAutoplayMedia();
+    };
+    const observer = new MutationObserver(check);
+    observer.observe(root, { childList: true, subtree: true });
+    const intervalId = setInterval(check, intervalMs);
+    check();
+    return stop;
   }
 
   function getTodayKey() {
@@ -90,6 +133,8 @@
     isHostMatch,
     resolveBlockedSite,
     stopAutoplayMedia,
+    restoreAutoplayMedia,
+    startAutoplayMuteGuard,
     getTodayKey
   };
 })();
