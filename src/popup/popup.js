@@ -40,13 +40,20 @@
   }
 
   function updateSummary(settings) {
-    const hasAnyBlocking = settings.blockedSites.length > 0 || settings.blockAdultSites;
+    const hasGoalSets = Array.isArray(settings.goalSets)
+      && settings.goalSets.some((set) => Array.isArray(set.blockedSites) && set.blockedSites.length > 0);
+    const hasPrimary = settings.blockedSites.length > 0;
+    const hasAnyBlocking = hasPrimary || settings.blockAdultSites || hasGoalSets;
     if (hasAnyBlocking) {
-      dom.setSummaryText(
-        settings.blockAdultSites
-          ? `You'll wait ${settings.waitSeconds}s before visiting your list and built-in adult sites.`
-          : `You'll wait ${settings.waitSeconds}s before visiting these spaces.`
-      );
+      let summaryTarget = hasPrimary && hasGoalSets
+        ? "your blocked list and goal sets"
+        : hasGoalSets
+          ? "your goal sets"
+          : "your blocked list";
+      if (settings.blockAdultSites) {
+        summaryTarget = `${summaryTarget} and built-in adult sites`;
+      }
+      dom.setSummaryText(`You'll wait ${settings.waitSeconds}s before visiting ${summaryTarget}.`);
       return;
     }
     dom.setSummaryText("No blocked sites yet.");

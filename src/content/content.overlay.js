@@ -23,6 +23,7 @@
       successTotals: initialSuccessTotals = {},
       allowedMinutes = constants.DEFAULT_ALLOWED_MINUTES,
       openHistory = {},
+      goalValue = null,
       visitGoals = {},
       visitGoalDefault = constants.DEFAULT_VISIT_GOAL,
       themeMode = "auto",
@@ -33,6 +34,7 @@
     messaging.notifyOverlayShown(siteKey);
 
     applyOpenGoalDisplay(elements, {
+      goalValue,
       visitGoals,
       visitGoalDefault,
       dailyStats,
@@ -44,7 +46,19 @@
     applyOverlayTheme(themeMode, overlay);
 
     if (!appendOverlayElement(overlay)) {
-      document.addEventListener("DOMContentLoaded", () => appendOverlayElement(overlay), { once: true });
+      document.addEventListener(
+        "DOMContentLoaded",
+        () => {
+          if (appendOverlayElement(overlay)) {
+            installOverlayEventBlocker(overlay);
+            focusReasonInput(elements.reasonInput);
+          }
+        },
+        { once: true }
+      );
+    } else {
+      installOverlayEventBlocker(overlay);
+      focusReasonInput(elements.reasonInput);
     }
 
     if (!elements.dismissButton) return;
@@ -139,18 +153,20 @@
   }
 
   function applyOpenGoalDisplay(elements, context) {
-    const goalValue = resolveGoalValue
-      ? resolveGoalValue(context.visitGoals, context.visitGoalDefault, context.siteKey)
-      : null;
+    const resolvedGoal = Number.isFinite(context.goalValue)
+      ? context.goalValue
+      : resolveGoalValue
+        ? resolveGoalValue(context.visitGoals, context.visitGoalDefault, context.siteKey)
+        : null;
     const todayOpens = (context.dailyStats?.opens && context.dailyStats.opens[context.siteKey]) || 0;
     if (elements.openCountEl) {
       elements.openCountEl.textContent = `${todayOpens}`;
     }
     if (elements.openGoalEl) {
-      elements.openGoalEl.textContent = goalValue ? `${goalValue}` : "-";
+      elements.openGoalEl.textContent = resolvedGoal ? `${resolvedGoal}` : "-";
     }
-    if (elements.openLineEl && goalValue) {
-      const isLastAttempt = todayOpens === goalValue;
+    if (elements.openLineEl && resolvedGoal) {
+      const isLastAttempt = todayOpens === resolvedGoal;
       elements.openLineEl.classList.toggle("zenstop-open-warning", isLastAttempt);
     }
   }
@@ -406,4 +422,35 @@
   Content.overlay = {
     injectOverlay
   };
+
+  function installOverlayEventBlocker(overlay) {
+    if (!overlay) return;
+    const stop = (event) => event.stopPropagation();
+    [
+      "keydown",
+      "keypress",
+      "keyup",
+      "beforeinput",
+      "input",
+      "compositionstart",
+      "compositionupdate",
+      "compositionend",
+      "paste",
+      "focusin",
+      "focusout"
+    ].forEach((eventName) => {
+      overlay.addEventListener(eventName, stop);
+    });
+  }
+
+  function focusReasonInput(input) {
+    if (!input) return;
+    requestAnimationFrame(() => {
+      try {
+        input.focus({ preventScroll: true });
+      } catch {
+        input.focus();
+      }
+    });
+  }
 })();

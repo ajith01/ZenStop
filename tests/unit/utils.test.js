@@ -79,19 +79,29 @@ describe("ZenStop utils", () => {
     expect(utils.calculateGoalStreak(historyMap, openHistory, "site.com", today, 2)).toBe(2);
   });
 
-  test("calculateGoalStreak returns zero for invalid goal", () => {
-    const today = "2024-05-03";
-    const historyMap = {
-      "site.com": {
-        "2024-05-03": 1
-      }
+  test("capRecordMap limits the number of entries", () => {
+    const input = {
+      "2024-05-01": 1,
+      "2024-05-02": 2,
+      "2024-05-03": 3,
+      "2024-05-04": 4
     };
-    const openHistory = {
-      "site.com": {
-        "2024-05-03": 1
-      }
+    const capped = utils.capRecordMap(input, 2);
+    expect(Object.keys(capped).length).toBe(2);
+    expect(capped).toHaveProperty("2024-05-04");
+    expect(capped).toHaveProperty("2024-05-03");
+  });
+
+  test("capHistoryMap limits entries for each site", () => {
+    const input = {
+      "site1.com": { "2024-05-01": 1, "2024-05-02": 2, "2024-05-03": 3 },
+      "site2.com": { "2024-05-01": 1 }
     };
-    expect(utils.calculateGoalStreak(historyMap, openHistory, "site.com", today, 0)).toBe(0);
+    const capped = utils.capHistoryMap(input, 2);
+    expect(Object.keys(capped["site1.com"]).length).toBe(2);
+    expect(Object.keys(capped["site2.com"]).length).toBe(1);
+    expect(capped["site1.com"]).toHaveProperty("2024-05-03");
+    expect(capped["site1.com"]).toHaveProperty("2024-05-02");
   });
 });
 

@@ -96,6 +96,17 @@
             <textarea id="visitGoals" class="goals-inline-input" placeholder="facebook.com: 2&#10;instagram.com: 1"></textarea>
             <span class="helper">Format: domain: goalCount. Leave blank to remove.</span>
           </label>
+
+          <div class="goal-sets">
+            <div class="goal-sets-header">
+              <div>
+                <h3>Additional goal sets</h3>
+                <p class="helper">All sets apply together. If a site appears in multiple sets, the lowest goal value wins.</p>
+              </div>
+              <button id="addGoalSet" type="button">Add goal set</button>
+            </div>
+            <div id="goalSetList" class="goal-set-list"></div>
+          </div>
         </div>
       </section>
 
@@ -185,6 +196,7 @@
     <script src="options.dom.js"></script>
     <script src="options.state.js"></script>
     <script src="options.intentions.js"></script>
+    <script src="options.goalsets.js"></script>
     <script src="options.settings.js"></script>
     <script src="options.history.js"></script>
     <script src="options.tabs.js"></script>

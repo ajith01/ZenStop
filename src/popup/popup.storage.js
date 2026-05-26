@@ -6,6 +6,7 @@
     "dailyStats",
     "blockAdultSites",
     "customAdultSites",
+    "goalSets",
     "themeMode"
   ];
   const DEFAULT_WAIT_SECONDS = 10;
@@ -37,6 +38,7 @@
       blockedSites,
       customAdultSites,
       blockAdultSites,
+      goalSets: normalizeGoalSets(raw.goalSets),
       waitSeconds,
       themeMode,
       dailyStats: normalizeDailyStats(raw.dailyStats, todayKey)
@@ -60,6 +62,20 @@
       };
     }
     return { date: todayKey, visits: {}, bails: {} };
+  }
+
+  function normalizeGoalSets(raw) {
+    if (!Array.isArray(raw)) return [];
+    return raw
+      .map((entry) => {
+        if (!entry || typeof entry !== "object") return null;
+        return {
+          blockedSites: Array.isArray(entry.blockedSites)
+            ? entry.blockedSites.filter((site) => typeof site === "string" && site.trim())
+            : []
+        };
+      })
+      .filter(Boolean);
   }
 
   Popup.storage = {

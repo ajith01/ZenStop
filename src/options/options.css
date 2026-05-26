@@ -324,6 +324,77 @@ select:focus {
   resize: vertical;
 }
 
+.goal-sets {
+  margin-top: 1.2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+}
+
+.goal-sets-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.goal-sets-header h3 {
+  margin: 0;
+  font-size: 1.1rem;
+}
+
+.goal-sets-header button {
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 0.55rem 1.2rem;
+  background: linear-gradient(135deg, var(--accent), var(--accent-2));
+  color: #1f1637;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 8px 18px rgba(47, 34, 104, 0.12);
+}
+
+.goal-set-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+}
+
+.goal-set-card {
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 1rem;
+  background: var(--surface-muted);
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.goal-set-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.goal-set-name-label {
+  margin-top: 0;
+  flex: 1;
+  min-width: 220px;
+}
+
+.goal-set-remove {
+  border: 1px solid rgba(192, 78, 78, 0.4);
+  border-radius: 999px;
+  padding: 0.45rem 0.9rem;
+  background: rgba(192, 78, 78, 0.12);
+  color: #a33a3a;
+  font-weight: 700;
+  cursor: pointer;
+}
+
 .intentions-list {
   list-style: none;
   padding: 0;

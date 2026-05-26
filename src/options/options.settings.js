@@ -3,6 +3,7 @@
   const dom = Options.dom;
   const state = Options.state;
   const intentions = Options.intentions;
+  const goalSets = Options.goalSets;
   if (!dom || !state || !intentions) return;
 
   const SETTINGS_KEYS = [
@@ -12,6 +13,7 @@
     "allowedMinutes",
     "blockAdultSites",
     "customAdultSites",
+    "goalSets",
     "visitGoals",
     "visitGoalDefault",
     "themeMode",
@@ -45,13 +47,18 @@
     if (dom.elements.visitGoalDefaultInput) {
       dom.elements.visitGoalDefaultInput.value = settings.visitGoalDefault;
     }
+    if (goalSets?.renderGoalSets) {
+      goalSets.renderGoalSets(settings.goalSets);
+    }
 
     if (dom.elements.themeModeSelect) {
       dom.elements.themeModeSelect.value = settings.themeMode;
     }
     applyTheme(settings.themeMode);
 
-    state.cachedBlockedSites = settings.blockedSites;
+    state.cachedPrimarySites = settings.blockedSites;
+    state.cachedGoalSets = settings.goalSets;
+    state.cachedBlockedSites = mergeBlockedSites(settings.blockedSites, settings.goalSets);
     state.cachedCustomAdultSites = settings.customAdultSites;
     state.currentCustomTags = intentions.normalizeCustomTags(settings.intentTags);
     intentions.renderCustomTags();
@@ -67,6 +74,7 @@
       allowedMinutes: normalizePositiveNumber(raw.allowedMinutes, DEFAULT_ALLOWED_MINUTES, MIN_ALLOWED_MINUTES),
       blockAdultSites: typeof raw.blockAdultSites === "boolean" ? raw.blockAdultSites : true,
       customAdultSites: Array.isArray(raw.customAdultSites) ? raw.customAdultSites : [],
+      goalSets: normalizeGoalSets(raw.goalSets),
       visitGoals: raw.visitGoals && typeof raw.visitGoals === "object" && !Array.isArray(raw.visitGoals) ? raw.visitGoals : {},
       visitGoalDefault: normalizePositiveNumber(raw.visitGoalDefault, DEFAULT_VISIT_GOAL, 1),
       themeMode: typeof raw.themeMode === "string" ? raw.themeMode : DEFAULT_THEME,
@@ -115,6 +123,7 @@
     const visitGoals = parseVisitGoals(dom.elements.visitGoalsInput?.value || "");
     const visitGoalDefault = normalizePositiveNumber(dom.elements.visitGoalDefaultInput?.value, DEFAULT_VISIT_GOAL, 1);
     const themeMode = dom.elements.themeModeSelect?.value || DEFAULT_THEME;
+    const nextGoalSets = goalSets?.collectGoalSets ? goalSets.collectGoalSets() : [];
 
     await chrome.storage.sync.set({
       blockedSites,
@@ -123,6 +132,7 @@
       allowedMinutes,
       blockAdultSites,
       customAdultSites,
+      goalSets: nextGoalSets,
       visitGoals,
       visitGoalDefault,
       themeMode,
@@ -185,11 +195,43 @@
       .join("\n");
   }
 
+  function mergeBlockedSites(primarySites, goalSets) {
+    const combined = Array.isArray(primarySites) ? primarySites.slice() : [];
+    (Array.isArray(goalSets) ? goalSets : []).forEach((set) => {
+      if (Array.isArray(set.blockedSites)) {
+        combined.push(...set.blockedSites);
+      }
+    });
+    return combined;
+  }
+
+  function normalizeGoalSets(raw) {
+    if (!Array.isArray(raw)) return [];
+    return raw
+      .map((entry) => {
+        if (!entry || typeof entry !== "object") return null;
+        const blockedSites = Array.isArray(entry.blockedSites)
+          ? entry.blockedSites.filter((site) => typeof site === "string" && site.trim())
+          : [];
+        return {
+          id: typeof entry.id === "string" ? entry.id : "",
+          name: typeof entry.name === "string" ? entry.name.trim() : "",
+          blockedSites,
+          visitGoals: entry.visitGoals && typeof entry.visitGoals === "object" && !Array.isArray(entry.visitGoals)
+            ? entry.visitGoals
+            : {},
+          visitGoalDefault: normalizePositiveNumber(entry.visitGoalDefault, DEFAULT_VISIT_GOAL, 1)
+        };
+      })
+      .filter(Boolean);
+  }
+
   Options.settings = {
     DEFAULT_THEME,
     restoreSettings,
     saveSettings,
     syncAdultVisibility,
-    applyTheme
+    applyTheme,
+    mergeBlockedSites
   };
 })();

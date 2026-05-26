@@ -13,8 +13,8 @@ $zipPath = Join-Path $distDir $zipName
 if (Test-Path $tempDir) {
   Remove-Item $tempDir -Recurse -Force
 }
-New-Item -ItemType Directory -Path $distDir | Out-Null
-New-Item -ItemType Directory -Path $tempDir | Out-Null
+New-Item -ItemType Directory -Path $distDir -Force | Out-Null
+New-Item -ItemType Directory -Path $tempDir -Force | Out-Null
 
 Copy-Item $manifestPath $tempDir
 Copy-Item (Join-Path $root "assets") -Destination (Join-Path $tempDir "assets") -Recurse

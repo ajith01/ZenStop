@@ -9,6 +9,8 @@
     currentReasons: [],
     currentFilter: "all",
     cachedBlockedSites: [],
+    cachedPrimarySites: [],
+    cachedGoalSets: [],
     cachedCustomAdultSites: []
   };
 })();

@@ -6,12 +6,34 @@ const padTwoDigits = (value) => String(value).padStart(2, "0");
 
 const pluralize = (count, singular, plural) => (count === 1 ? singular : plural);
 
+const MAX_HISTORY_DAYS = 60;
+
 function normalizeEntry(entry) {
   if (!isNonEmptyString(entry)) return "";
   const trimmed = entry.trim().toLowerCase();
   const noProtocol = trimmed.replace(/^https?:\/\//, "");
   const host = noProtocol.split(/[/?#:]/)[0];
   return host.replace(/^\.+/, "");
+}
+
+function capRecordMap(record, maxDays = MAX_HISTORY_DAYS) {
+  if (!record || typeof record !== "object" || Array.isArray(record)) return {};
+  const keys = Object.keys(record).sort().reverse();
+  if (keys.length <= maxDays) return record;
+  const capped = {};
+  keys.slice(0, maxDays).forEach((key) => {
+    capped[key] = record[key];
+  });
+  return capped;
+}
+
+function capHistoryMap(history, maxDays = MAX_HISTORY_DAYS) {
+  if (!history || typeof history !== "object" || Array.isArray(history)) return {};
+  const capped = {};
+  Object.keys(history).forEach((siteKey) => {
+    capped[siteKey] = capRecordMap(history[siteKey], maxDays);
+  });
+  return capped;
 }
 
 function normalizeDailyStats(value, todayKey) {
@@ -122,13 +144,16 @@ function formatStreak(value) {
 const ZenStopUtils = {
   normalizeEntry,
   normalizeDailyStats,
+  capRecordMap,
+  capHistoryMap,
   buildBlockedList,
   resolveGoalValue,
   formatDateKey,
   parseDateKey,
   calculateGoalStreak,
   formatCountdown,
-  formatStreak
+  formatStreak,
+  MAX_HISTORY_DAYS
 };
 
 if (typeof module !== "undefined" && module.exports) {

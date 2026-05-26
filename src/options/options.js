@@ -6,6 +6,7 @@
   const history = Options.history;
   const intentions = Options.intentions;
   const tabs = Options.tabs;
+  const goalSets = Options.goalSets;
   if (!dom || !state || !settings || !history || !intentions || !tabs) return;
 
   const init = () => initializeOptions().catch(() => {});
@@ -99,6 +100,10 @@
     if (dom.elements.saveBtn) {
       dom.elements.saveBtn.addEventListener("click", settings.saveSettings);
     }
+
+    if (goalSets?.bindEvents) {
+      goalSets.bindEvents();
+    }
   }
 
   function handleStorageChange(changes, area) {
@@ -110,10 +115,20 @@
     if (changes.history || changes.visitHistory || changes.successHistory) {
       void history.refreshHistoryData();
     }
-    if (changes.blockedSites || changes.customAdultSites) {
-      state.cachedBlockedSites = Array.isArray(changes.blockedSites?.newValue)
+    if (changes.blockedSites) {
+      state.cachedPrimarySites = Array.isArray(changes.blockedSites?.newValue)
         ? changes.blockedSites.newValue
-        : state.cachedBlockedSites;
+        : state.cachedPrimarySites;
+    }
+    if (changes.goalSets) {
+      state.cachedGoalSets = Array.isArray(changes.goalSets?.newValue)
+        ? changes.goalSets.newValue
+        : state.cachedGoalSets;
+    }
+    if (changes.blockedSites || changes.customAdultSites || changes.goalSets) {
+      if (settings.mergeBlockedSites) {
+        state.cachedBlockedSites = settings.mergeBlockedSites(state.cachedPrimarySites, state.cachedGoalSets);
+      }
       state.cachedCustomAdultSites = Array.isArray(changes.customAdultSites?.newValue)
         ? changes.customAdultSites.newValue
         : state.cachedCustomAdultSites;

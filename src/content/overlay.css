@@ -28,6 +28,7 @@
   font-family: system-ui, -apple-system, "Segoe UI", Inter, sans-serif;
   text-align: center;
   padding: 1.5rem;
+  pointer-events: auto;
 }
 
 .zenstop-backdrop[data-theme="dark"] {
@@ -87,6 +88,7 @@
   width: min(90vw, 440px);
   padding: 1.8rem 1.6rem;
   box-shadow: 0 26px 50px rgba(31, 23, 72, 0.16);
+  pointer-events: auto;
 }
 
 .zenstop-label-row {
@@ -299,7 +301,11 @@
   color: var(--o-text);
   resize: none;
   overflow-y: auto;
-  line-height: 1.4;
+    line-height: 1.4;
+    pointer-events: auto;
+    user-select: text;
+    -webkit-user-select: text;
+    caret-color: var(--o-text);
 }
 
 .zenstop-intent-input:focus {

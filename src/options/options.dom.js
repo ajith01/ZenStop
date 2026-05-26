@@ -17,6 +17,8 @@
     siteSelect: document.getElementById("historySite"),
     visitGoalsInput: document.getElementById("visitGoals"),
     visitGoalDefaultInput: document.getElementById("visitGoalDefault"),
+    goalSetList: document.getElementById("goalSetList"),
+    addGoalSetBtn: document.getElementById("addGoalSet"),
     reasonList: document.getElementById("reasonList"),
     reasonEmpty: document.getElementById("reasonEmpty"),
     themeModeSelect: document.getElementById("themeMode"),

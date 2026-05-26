@@ -6,6 +6,7 @@ const DEFAULTS = {
   blockAdultSites: true,
   customAdultSites: [],
   openHistory: {},
+  goalSets: [],
   visitGoals: {},
   visitGoalDefault: 5,
   themeMode: "auto",
@@ -32,6 +33,7 @@ chrome.runtime.onInstalled.addListener(async ({ reason }) => {
     "blockAdultSites",
     "customAdultSites",
     "openHistory",
+    "goalSets",
     "visitGoals",
     "visitGoalDefault",
     "themeMode",
@@ -58,8 +60,11 @@ chrome.runtime.onInstalled.addListener(async ({ reason }) => {
       ? current.customAdultSites
       : DEFAULTS.customAdultSites,
     openHistory: current.openHistory && typeof current.openHistory === "object" && !Array.isArray(current.openHistory)
-      ? current.openHistory
+      ? capHistoryMap(current.openHistory)
       : DEFAULTS.openHistory,
+    goalSets: Array.isArray(current.goalSets)
+      ? current.goalSets
+      : DEFAULTS.goalSets,
     visitGoals: current.visitGoals && typeof current.visitGoals === "object" && !Array.isArray(current.visitGoals)
       ? current.visitGoals
       : DEFAULTS.visitGoals,
@@ -204,7 +209,30 @@ async function recordMindfulExit(siteKey) {
 
   const updatedSuccess = successHistory && typeof successHistory === "object" ? { ...successHistory } : {};
   updatedSuccess[todayKey] = (updatedSuccess[todayKey] || 0) + 1;
-  await chrome.storage.sync.set({ dailyStats: normalized, successHistory: updatedSuccess });
+  await chrome.storage.sync.set({
+    dailyStats: normalized,
+    successHistory: capRecordMap(updatedSuccess)
+  });
+}
+
+function capRecordMap(record, maxDays = 60) {
+  if (!record || typeof record !== "object" || Array.isArray(record)) return {};
+  const keys = Object.keys(record).sort().reverse();
+  if (keys.length <= maxDays) return record;
+  const capped = {};
+  keys.slice(0, maxDays).forEach((key) => {
+    capped[key] = record[key];
+  });
+  return capped;
+}
+
+function capHistoryMap(history, maxDays = 60) {
+  if (!history || typeof history !== "object" || Array.isArray(history)) return {};
+  const capped = {};
+  Object.keys(history).forEach((siteKey) => {
+    capped[siteKey] = capRecordMap(history[siteKey], maxDays);
+  });
+  return capped;
 }
 
 function normalizeDailyStats(value, todayKey) {

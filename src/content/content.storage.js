@@ -4,8 +4,10 @@
   const helpers = Content.helpers;
   const zenUtils = globalThis.ZenStopUtils || {};
   const normalizeDailyStats = zenUtils.normalizeDailyStats;
+  const capRecordMap = zenUtils.capRecordMap;
+  const capHistoryMap = zenUtils.capHistoryMap;
 
-  if (!constants || !helpers || !normalizeDailyStats) return;
+  if (!constants || !helpers || !normalizeDailyStats || !capRecordMap || !capHistoryMap) return;
 
   async function loadSettings() {
     if (!helpers.isExtensionContextValid()) {
@@ -23,6 +25,7 @@
       blockAdultSites = true,
       customAdultSites = [],
       openHistory,
+      goalSets = [],
       visitGoals = {},
       visitGoalDefault = constants.DEFAULT_VISIT_GOAL,
       themeMode = "auto",
@@ -49,6 +52,7 @@
       ),
       blockAdultSites: typeof blockAdultSites === "boolean" ? blockAdultSites : true,
       customAdultSites: Array.isArray(customAdultSites) ? customAdultSites : [],
+      goalSets: normalizeGoalSets(goalSets),
       visitGoals: helpers.normalizeRecordMap(visitGoals),
       visitGoalDefault: helpers.normalizePositiveNumber(visitGoalDefault, constants.DEFAULT_VISIT_GOAL, 1),
       themeMode: typeof themeMode === "string" && themeMode ? themeMode : "auto",
@@ -80,9 +84,9 @@
     if (helpers.isExtensionContextValid()) {
       await chrome.storage.sync.set({
         dailyStats,
-        history: historyMap,
-        visitHistory,
-        successHistory: successTotals
+        history: capHistoryMap(historyMap),
+        visitHistory: capRecordMap(visitHistory),
+        successHistory: capRecordMap(successTotals)
       });
     }
 
@@ -100,7 +104,10 @@
     perSiteOpens[todayKey] = (perSiteOpens[todayKey] || 0) + 1;
     openHistoryMap[siteKey] = perSiteOpens;
     if (helpers.isExtensionContextValid()) {
-      await chrome.storage.sync.set({ dailyStats, openHistory: openHistoryMap });
+      await chrome.storage.sync.set({
+        dailyStats,
+        openHistory: capHistoryMap(openHistoryMap)
+      });
     }
     return { dailyStats, openHistory: openHistoryMap, todayKey };
   }
@@ -113,7 +120,10 @@
     const todayKey = helpers.getTodayKey();
     updatedSuccess[todayKey] = (updatedSuccess[todayKey] || 0) + 1;
     if (helpers.isExtensionContextValid()) {
-      await chrome.storage.sync.set({ dailyStats, successHistory: updatedSuccess });
+      await chrome.storage.sync.set({
+        dailyStats,
+        successHistory: capRecordMap(updatedSuccess)
+      });
     }
     return { dailyStats, successTotals: updatedSuccess, todayKey };
   }
@@ -167,19 +177,21 @@
       list = Array.isArray(stored) ? stored.slice() : [];
     }
     const safeUrl = sanitizeReasonUrl(entry.url);
+    const safeReason = typeof entry.reason === "string" ? entry.reason.slice(0, 200) : "";
     list.unshift({
       siteKey: entry.siteKey,
       siteLabel: entry.siteLabel || entry.siteKey,
-      reason: entry.reason || "",
+      reason: safeReason,
       tag: entry.tag || "",
       outcome: entry.outcome || "continue",
-      url: safeUrl,
+      url: safeUrl.slice(0, 200),
       timestamp: entry.timestamp || Date.now()
     });
     const capped = list.slice(0, constants.MAX_REASONS);
     try {
       await chrome.storage.sync.set({ [constants.REASONS_KEY]: capped });
-    } catch {
+    } catch (e) {
+      console.warn("ZenStop: Failed to sync reasons, falling back to local storage", e);
       await chrome.storage.local.set({ [constants.REASONS_KEY]: capped });
     }
   }
@@ -192,6 +204,29 @@
     } catch {
       return "";
     }
+  }
+
+  function normalizeGoalSets(raw) {
+    if (!Array.isArray(raw)) return [];
+    return raw
+      .map((entry) => {
+        if (!entry || typeof entry !== "object") return null;
+        const blockedSites = Array.isArray(entry.blockedSites)
+          ? entry.blockedSites.filter((site) => typeof site === "string" && site.trim())
+          : [];
+        return {
+          id: typeof entry.id === "string" ? entry.id : "",
+          name: typeof entry.name === "string" ? entry.name.trim() : "",
+          blockedSites,
+          visitGoals: helpers.normalizeRecordMap(entry.visitGoals),
+          visitGoalDefault: helpers.normalizePositiveNumber(
+            entry.visitGoalDefault,
+            constants.DEFAULT_VISIT_GOAL,
+            1
+          )
+        };
+      })
+      .filter(Boolean);
   }
 
   Content.storage = {
